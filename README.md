@@ -1,26 +1,51 @@
 # tarantula-test
 
-Test suite for the Tarantula game clustering platform — integration tests, load tests, and smoke tests targeting deployed app repos.
+k6 test suite for the Tarantula game clustering platform — smoke, integration, and load tests targeting deployed app repos.
 
-## Purpose
+## Requirements
 
-This repo is used as a `RepoObject` with type `test` in the Tarantula task flow. When a cluster task is issued, the test runner is cloned and executed against the deployed app instance.
-
-## Test Types
-
-| Type | Description |
-|---|---|
-| **Smoke** | Quick sanity checks — verify the app is up and key endpoints respond |
-| **Integration** | End-to-end API and service interaction tests |
-| **Load** | Performance and concurrency tests under sustained or spike traffic |
+- [k6](https://k6.io/docs/get-started/installation/) v0.50+
 
 ## Structure
 
 ```
-smoke/        # smoke tests
-integration/  # integration tests
-load/         # load / performance tests
+lib/            # shared helpers (login, auth headers, base URL)
+smoke/          # quick sanity checks — is the service alive?
+integration/    # API flow tests — create/list/delete repos, issue tasks
+load/           # sustained and spike load scenarios
 ```
+
+## Running
+
+All scripts read `BASE_URL`, `ADMIN_USER`, and `ADMIN_PASS` from environment variables.
+
+```bash
+# Smoke — 1 VU, 1 iteration
+k6 run smoke/smoke.js \
+  -e BASE_URL=http://192.168.1.11 \
+  -e ADMIN_USER=root \
+  -e ADMIN_PASS=password123
+
+# Integration — full repo CRUD flow
+k6 run integration/cluster.js \
+  -e BASE_URL=http://192.168.1.11 \
+  -e ADMIN_USER=root \
+  -e ADMIN_PASS=password123
+
+# Load — ramp to 50 VUs over 4 minutes
+k6 run load/load.js \
+  -e BASE_URL=http://192.168.1.11 \
+  -e ADMIN_USER=root \
+  -e ADMIN_PASS=password123
+```
+
+## Thresholds
+
+| Suite | Threshold |
+|---|---|
+| Smoke | 0% errors, p95 < 2s |
+| Integration | 0% errors, p95 < 3s |
+| Load | <1% errors, p95 < 1s |
 
 ## License
 
